@@ -11,6 +11,7 @@
 #include "Bullet3Common/b3CommandLineArgs.h"
 
 #include "../Utils/b3Clock.h"
+#include "../Utils/ChromeTraceUtil.h"
 #include "../ExampleBrowser/OpenGLGuiHelper.h"
 #include "../CommonInterfaces/CommonExampleInterface.h"
 #include "../CommonInterfaces/CommonGUIHelperInterface.h"
@@ -22,9 +23,7 @@
 int gSharedMemoryKey = -1;
 int  gDebugDrawFlags = 0;
 bool gDisplayDistortion = false;
-
-//how can you try typing on a keyboard, without seeing it?
-//it is pretty funny, to see the desktop in VR!
+bool gDisableDesktopGL = false;
 
 
 #include <stdio.h>
@@ -135,6 +134,8 @@ public:
 
 	void SetupRenderModelForTrackedDevice( vr::TrackedDeviceIndex_t unTrackedDeviceIndex );
 	CGLRenderModel *FindOrLoadRenderModel( const char *pchRenderModelName );
+
+	SimpleOpenGL3App* getApp() { return m_app;}
 
 private: 
 	bool m_bDebugOpenGL;
@@ -342,6 +343,30 @@ std::string GetTrackedDeviceString( vr::IVRSystem *pHmd, vr::TrackedDeviceIndex_
 }
 
 
+b3KeyboardCallback prevKeyboardCallback = 0;
+
+void MyKeyboardCallback(int key, int state)
+{
+	if (key == 'p')
+	{
+		if (state)
+		{
+			b3ChromeUtilsStartTimings();
+		}
+		else
+		{
+			b3ChromeUtilsStopTimingsAndWriteJsonFile();
+		}
+	}
+	if (sExample)
+	{
+		sExample->keyboardCallback(key,state);
+	}
+
+	if (prevKeyboardCallback)
+		prevKeyboardCallback(key,state);
+
+}
 //-----------------------------------------------------------------------------
 // Purpose:
 //-----------------------------------------------------------------------------
@@ -397,7 +422,9 @@ bool CMainApplication::BInit()
 
 	//sGuiPtr = new DummyGUIHelper;
 
-    
+    prevKeyboardCallback = m_app->m_window->getKeyboardCallback();
+	m_app->m_window->setKeyboardCallback(MyKeyboardCallback);
+
 	CommonExampleOptions options(sGuiPtr);
 
 	sExample = StandaloneExampleCreateFunc(options);
@@ -632,9 +659,11 @@ void CMainApplication::Shutdown()
 		}
 	}
 
-	sExample->exitPhysics();
-	delete sExample;
-
+	if (sExample)
+	{
+		sExample->exitPhysics();
+		delete sExample;
+	}
 	delete m_app;
 	m_app=0;
 	
@@ -781,6 +810,7 @@ void CMainApplication::RunMainLoop()
 
 	while ( !bQuit && !m_app->m_window->requestedExit())
 	{
+		b3ChromeUtilsEnableProfiling();
 		{
 		B3_PROFILE("main");
 
@@ -834,28 +864,33 @@ void CMainApplication::RenderFrame()
 		}
 		RenderStereoTargets();
 
-		if (gDisplayDistortion)
+		if (!gDisableDesktopGL)
 		{
-			B3_PROFILE("RenderDistortion");
-			RenderDistortion();
-		} else
-		{
-			glBindFramebuffer( GL_FRAMEBUFFER, 0 );
-			glDisable( GL_MULTISAMPLE );
-	 		glBindFramebuffer(GL_READ_FRAMEBUFFER, rightEyeDesc.m_nRenderFramebufferId );
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+			if (gDisplayDistortion)
+			{
+				B3_PROFILE("RenderDistortion");
+				RenderDistortion();
+			} else
+			{
+				//todo: should use framebuffer_multisample_blit_scaled
+				//See https://twitter.com/id_aa_carmack/status/268488838425481217?lang=en
+				glBindFramebuffer( GL_FRAMEBUFFER, 0 );
+				glDisable( GL_MULTISAMPLE );
+	 			glBindFramebuffer(GL_READ_FRAMEBUFFER, rightEyeDesc.m_nRenderFramebufferId );
+				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 	
-			glBlitFramebuffer( 0, 0, m_nRenderWidth, m_nRenderHeight, 0, 0, m_nRenderWidth, m_nRenderHeight, 
-				GL_COLOR_BUFFER_BIT,
- 				GL_LINEAR  );
+				glBlitFramebuffer( 0, 0, m_nRenderWidth, m_nRenderHeight, 0, 0, m_nRenderWidth, m_nRenderHeight, 
+					GL_COLOR_BUFFER_BIT,
+ 					GL_LINEAR  );
 
- 			glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0 );
+ 				glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0 );
+			}
 		}
 
-		vr::Texture_t leftEyeTexture = {(void*)leftEyeDesc.m_nResolveTextureId, vr::API_OpenGL, vr::ColorSpace_Gamma };
+		vr::Texture_t leftEyeTexture = {(void*)leftEyeDesc.m_nResolveTextureId, vr::TextureType_OpenGL, vr::ColorSpace_Gamma };
 		vr::VRCompositor()->Submit(vr::Eye_Left, &leftEyeTexture );
-		vr::Texture_t rightEyeTexture = {(void*)rightEyeDesc.m_nResolveTextureId, vr::API_OpenGL, vr::ColorSpace_Gamma };
+		vr::Texture_t rightEyeTexture = {(void*)rightEyeDesc.m_nResolveTextureId, vr::TextureType_OpenGL, vr::ColorSpace_Gamma };
 		vr::VRCompositor()->Submit(vr::Eye_Right, &rightEyeTexture );
 		
 	}
@@ -873,7 +908,10 @@ void CMainApplication::RenderFrame()
 	// SwapWindow
 	{
 		B3_PROFILE("m_app->swapBuffer");
-		m_app->swapBuffer();
+		if (!gDisableDesktopGL)
+		{
+			m_app->swapBuffer();
+		}
 		//SDL_GL_SwapWindow( m_pWindow );
 		
 	}
@@ -1622,7 +1660,7 @@ void CMainApplication::RenderStereoTargets()
 	B3_PROFILE("CMainApplication::RenderStereoTargets");
 
 	btScalar dtSec = btScalar(m_clock.getTimeInSeconds());
-	dtSec = b3Min(dtSec,0.1);
+	dtSec = btMin(dtSec,btScalar(0.1));
 	sExample->stepSimulation(dtSec);
 	m_clock.reset();
 
@@ -1872,7 +1910,7 @@ Matrix4 CMainApplication::GetHMDMatrixProjectionEye( vr::Hmd_Eye nEye )
 	if ( !m_pHMD )
 		return Matrix4();
 
-	vr::HmdMatrix44_t mat = m_pHMD->GetProjectionMatrix( nEye, m_fNearClip, m_fFarClip, vr::API_OpenGL);
+	vr::HmdMatrix44_t mat = m_pHMD->GetProjectionMatrix( nEye, m_fNearClip, m_fFarClip);
 
 	return Matrix4(
 		mat.m[0][0], mat.m[1][0], mat.m[2][0], mat.m[3][0],
@@ -1952,7 +1990,6 @@ void CMainApplication::UpdateHMDMatrixPose()
 					case vr::TrackedDeviceClass_Controller:        m_rDevClassChar[nDevice] = 'C'; break;
 					case vr::TrackedDeviceClass_HMD:               m_rDevClassChar[nDevice] = 'H'; break;
 					case vr::TrackedDeviceClass_Invalid:           m_rDevClassChar[nDevice] = 'I'; break;
-					case vr::TrackedDeviceClass_Other:             m_rDevClassChar[nDevice] = 'O'; break;
 					case vr::TrackedDeviceClass_TrackingReference: m_rDevClassChar[nDevice] = 'T'; break;
 					default:                                       m_rDevClassChar[nDevice] = '?'; break;
 					}
@@ -2216,7 +2253,18 @@ void CGLRenderModel::Draw()
 int main(int argc, char *argv[])
 {
 
+	b3CommandLineArgs args(argc,argv);
+	if (args.CheckCmdLineFlag("disable_desktop_gl"))
+	{
+		gDisableDesktopGL = true;
+	}
+	if (args.CheckCmdLineFlag("tracing"))
+	{
+		b3ChromeUtilsStartTimings();
+		b3ChromeUtilsEnableProfiling();
+	}
 
+	
 #ifdef BT_USE_CUSTOM_PROFILER
 	b3SetCustomEnterProfileZoneFunc(dcEnter);
 	b3SetCustomLeaveProfileZoneFunc(dcLeave);
@@ -2239,11 +2287,15 @@ int main(int argc, char *argv[])
         newargv[0] = t0;
 		newargv[1] = t0;
 		sExample->processCommandLineArgs(2,newargv);
-
 		sExample->processCommandLineArgs(argc,argv);
 
 	}
 
+	char* gVideoFileName = 0;
+    args.GetCmdLineArgument("mp4",gVideoFileName);
+    if (gVideoFileName)
+        pMainApplication->getApp()->dumpFramesToVideo(gVideoFileName);
+ 
 	//request disable VSYNC
 	typedef bool (APIENTRY *PFNWGLSWAPINTERVALFARPROC)(int);
 	PFNWGLSWAPINTERVALFARPROC wglSwapIntervalEXT = 0;
@@ -2256,8 +2308,11 @@ int main(int argc, char *argv[])
 
 	pMainApplication->Shutdown();
 
-#ifdef BT_USE_CUSTOM_PROFILER
-#endif
+	if (args.CheckCmdLineFlag("tracing"))
+	{
+		b3ChromeUtilsStopTimingsAndWriteJsonFile();
+	}
+
 
 	return 0;
 }

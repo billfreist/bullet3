@@ -99,7 +99,16 @@ bool PhysicsLoopBack::getJointInfo(int bodyIndex, int jointIndex, struct b3Joint
 	return m_data->m_physicsClient->getJointInfo(bodyIndex,jointIndex,info);
 }
 
-///todo: move this out of the
+int PhysicsLoopBack::getNumUserConstraints() const
+{
+    return m_data->m_physicsClient->getNumUserConstraints();
+}
+int PhysicsLoopBack::getUserConstraintInfo(int constraintUniqueId, struct b3UserConstraint&info) const
+{
+    return m_data->m_physicsClient->getUserConstraintInfo( constraintUniqueId, info);
+}
+
+///todo: move this out of the interface
 void PhysicsLoopBack::setSharedMemoryKey(int key)
 {
 	m_data->m_physicsServer->setSharedMemoryKey(key);
@@ -151,6 +160,11 @@ void PhysicsLoopBack::getCachedVREvents(struct b3VREventsData* vrEventsData)
 	return m_data->m_physicsClient->getCachedVREvents(vrEventsData);
 }
 
+void PhysicsLoopBack::getCachedKeyboardEvents(struct b3KeyboardEventsData* keyboardEventsData)
+{
+	return m_data->m_physicsClient->getCachedKeyboardEvents(keyboardEventsData);
+}
+
 void PhysicsLoopBack::getCachedOverlappingObjects(struct b3AABBOverlapData* overlappingObjects)
 {
 	return m_data->m_physicsClient->getCachedOverlappingObjects(overlappingObjects);
@@ -160,3 +174,13 @@ void PhysicsLoopBack::getCachedRaycastHits(struct b3RaycastInformation* raycastH
 {
 	return m_data->m_physicsClient->getCachedRaycastHits(raycastHits);
 }
+
+void PhysicsLoopBack::setTimeOut(double timeOutInSeconds)
+{
+	m_data->m_physicsClient->setTimeOut(timeOutInSeconds);
+}
+double PhysicsLoopBack::getTimeOut() const
+{
+	return m_data->m_physicsClient->getTimeOut();
+}
+

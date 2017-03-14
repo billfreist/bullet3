@@ -12,7 +12,11 @@
 #include "Win32OpenGLWindow.h"
 #else
 //let's cross the fingers it is Linux/X11
+#ifdef BT_USE_EGL
+#include "EGLOpenGLWindow.h"
+#else
 #include "X11OpenGLWindow.h"
+#endif //BT_USE_EGL
 #endif //_WIN32
 #endif//__APPLE__
 #include <stdio.h>
@@ -151,19 +155,21 @@ SimpleOpenGL3App::SimpleOpenGL3App(	const char* title, int width,int height, boo
     
 	b3Assert(glGetError() ==GL_NO_ERROR);
 
+#ifndef NO_GLEW
 #ifndef __APPLE__
 #ifndef _WIN32
-//some Linux implementations need the 'glewExperimental' to be true
+    //some Linux implementations need the 'glewExperimental' to be true
     glewExperimental = GL_TRUE;
-#endif
-
-
+#endif //_WIN32
+    
+    
     if (glewInit() != GLEW_OK)
         exit(1); // or handle the error in a nicer way
     if (!GLEW_VERSION_2_1)  // check that the machine supports the 2.1 API.
         exit(1); // or handle the error in a nicer way
-
-#endif
+    
+#endif //__APPLE__
+#endif //NO_GLEW
     glGetError();//don't remove this call, it is needed for Ubuntu
 
     b3Assert(glGetError() ==GL_NO_ERROR);
@@ -672,13 +678,15 @@ void SimpleOpenGL3App::getScreenPixels(unsigned char* rgbaBuffer, int bufferSize
     if ((width*height*4) == bufferSizeInBytes)
     {
         glReadPixels(0,0,width, height, GL_RGBA, GL_UNSIGNED_BYTE, rgbaBuffer);
-		int glstat = glGetError();
+		int glstat;
+		glstat = glGetError();
 		b3Assert(glstat==GL_NO_ERROR);
     }
     if ((width*height*sizeof(float)) == depthBufferSizeInBytes)
     {
         glReadPixels(0,0,width, height, GL_DEPTH_COMPONENT, GL_FLOAT, depthBuffer);
-		int glstat = glGetError();
+		int glstat;
+		glstat = glGetError();
 		b3Assert(glstat==GL_NO_ERROR);
     }
     
@@ -779,7 +787,7 @@ void SimpleOpenGL3App::dumpFramesToVideo(const char* mp4FileName)
 
 #ifdef _WIN32
 	sprintf(cmd, "ffmpeg -r 60 -f rawvideo -pix_fmt rgba -s %dx%d -i - "
-		"-threads 0 -y -b 50000k  -t 20 -c:v libx264 -preset slow -crf 22 -an   -pix_fmt yuv420p -vf vflip %s", width, height, mp4FileName);
+		"-threads 0 -y -b:v 50000k  -t 20 -c:v libx264 -preset slow -crf 22 -an   -pix_fmt yuv420p -vf vflip %s", width, height, mp4FileName);
 
     //sprintf(cmd, "ffmpeg -r 60 -f rawvideo -pix_fmt rgba   -s %dx%d -i - "
     //		"-y -crf 0  -b:v 1500000 -an -vcodec h264 -vf vflip  %s", width, height, mp4FileName);

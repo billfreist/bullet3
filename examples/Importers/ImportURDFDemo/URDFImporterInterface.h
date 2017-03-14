@@ -30,6 +30,7 @@ public:
 	/// optional method to provide the link color. return true if the color is available and copied into colorRGBA, return false otherwise
 	virtual bool getLinkColor(int linkIndex, btVector4& colorRGBA) const { return false;}
 
+	virtual int getCollisionGroupAndMask(int linkIndex, int& colGroup, int& colMask) const { return 0;}
 	///this API will likely change, don't override it!
 	virtual bool getLinkContactInfo(int linkIndex, URDFLinkContactInfo& contactInfo ) const  { return false;}
     
@@ -51,13 +52,14 @@ public:
     virtual void convertLinkVisualShapes2(int linkIndex, const char* pathPrefix, const btTransform& inertialFrame, class btCollisionObject* colObj, int objectIndex) const  { }
     virtual void setBodyUniqueId(int bodyId) {}
     virtual int getBodyUniqueId() const { return 0;}
-    
+
+   //default implementation for backward compatibility 
 	virtual class btCompoundShape* convertLinkCollisionShapes(int linkIndex, const char* pathPrefix, const btTransform& localInertiaFrame) const  = 0;
 
-	virtual int getNumAllocatedCollisionShapes() const = 0;
-    virtual class btCollisionShape* getAllocatedCollisionShape(int index) = 0;
-	virtual int getNumModels() const=0;
-    virtual void activateModel(int modelIndex)=0;
+	virtual int getNumAllocatedCollisionShapes() const { return 0;}
+    virtual class btCollisionShape* getAllocatedCollisionShape(int /*index*/ ) {return 0;}
+	virtual int getNumModels() const {return 0;}
+    virtual void activateModel(int /*modelIndex*/) { }
 
 };
 

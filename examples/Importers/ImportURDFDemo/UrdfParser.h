@@ -26,11 +26,14 @@ struct UrdfMaterial
 struct UrdfInertia
 {
 	btTransform m_linkLocalFrame;
+	bool m_hasLinkLocalFrame;
+
 	double m_mass;
 	double m_ixx,m_ixy,m_ixz,m_iyy,m_iyz,m_izz;
 	
 	UrdfInertia()
 	{
+		m_hasLinkLocalFrame = false;
 		m_linkLocalFrame.setIdentity();
 		m_mass = 0.f;
 		m_ixx=m_ixy=m_ixz=m_iyy=m_iyz=m_izz=0.f;
@@ -58,20 +61,33 @@ struct UrdfGeometry
 	btVector3 m_boxSize;
 	
 	double m_capsuleRadius;
+	double m_capsuleHalfHeight;
+	int m_hasFromTo;
 	btVector3 m_capsuleFrom;
 	btVector3 m_capsuleTo;
 
 	double m_cylinderRadius;
 	double m_cylinderLength;
 
-    btVector3 m_planeNormal;
+	btVector3 m_planeNormal;
     
+	enum {
+		FILE_STL     =1,
+		FILE_COLLADA =2,
+		FILE_OBJ     =3,
+	};
+	int         m_meshFileType;
 	std::string m_meshFileName;
-	btVector3 m_meshScale;
+	btVector3   m_meshScale;
 };
+
+bool findExistingMeshFile(const std::string& urdf_path, std::string fn,
+	const std::string& error_message_prefix,
+	std::string* out_found_filename, int* out_type); // intended to fill UrdfGeometry::m_meshFileName and Type, but can be used elsewhere
 
 struct UrdfVisual
 {
+	std::string m_sourceFileLocation;
 	btTransform m_linkLocalFrame;
 	UrdfGeometry m_geometry;
 	std::string m_name;
@@ -80,18 +96,18 @@ struct UrdfVisual
 	UrdfMaterial m_localMaterial;
 };
 
-enum UrdfCollisionFlags
-{
-	URDF_FORCE_CONCAVE_TRIMESH=1,
-};
+
 
 
 struct UrdfCollision
 {
+	std::string m_sourceFileLocation;
 	btTransform m_linkLocalFrame;
 	UrdfGeometry m_geometry;
 	std::string m_name;
 	int m_flags;
+	int m_collisionGroup;
+	int m_collisionMask;
 	UrdfCollision()
 		:m_flags(0)
 	{
@@ -155,6 +171,7 @@ struct UrdfJoint
 struct UrdfModel
 {
 	std::string m_name;
+	std::string m_sourceFile;
     btTransform m_rootTransformInWorld;
 	btHashMap<btHashString, UrdfMaterial*> m_materials;
 	btHashMap<btHashString, UrdfLink*> m_links;
@@ -200,7 +217,7 @@ public:
 	
 	UrdfParser();
 	virtual ~UrdfParser();
-	
+
     void setParseSDF(bool useSDF)
     {
         m_parseSDF = useSDF;
@@ -258,6 +275,13 @@ public:
             return *m_sdfModels[m_activeSdfModel];
         }
 		return m_urdf2Model;
+	}
+
+	std::string sourceFileLocation(TiXmlElement* e);
+
+	void setSourceFile(const std::string& sourceFile)
+	{
+		m_urdf2Model.m_sourceFile = sourceFile;
 	}
 };
 

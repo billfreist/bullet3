@@ -86,6 +86,7 @@ enum b3InverseKinematicsFlags
 {
 	B3_HAS_IK_TARGET_ORIENTATION=1,
     B3_HAS_NULL_SPACE_VELOCITY=2,
+    B3_HAS_JOINT_DAMPING=4,
 };
 
 struct b3RobotSimInverseKinematicArgs
@@ -102,6 +103,7 @@ struct b3RobotSimInverseKinematicArgs
     b3AlignedObjectArray<double> m_upperLimits;
     b3AlignedObjectArray<double> m_jointRanges;
     b3AlignedObjectArray<double> m_restPoses;
+    b3AlignedObjectArray<double> m_jointDamping;
 
 	b3RobotSimInverseKinematicArgs()
 		:m_bodyUniqueId(-1),
@@ -155,6 +157,7 @@ public:
 	void setGravity(const b3Vector3& gravityAcceleration);
     
     void setNumSimulationSubSteps(int numSubSteps);
+	void setNumSolverIterations(int numIterations);
 
 	bool calculateInverseKinematics(const struct b3RobotSimInverseKinematicArgs& args, struct b3RobotSimInverseKinematicsResults& results);
 

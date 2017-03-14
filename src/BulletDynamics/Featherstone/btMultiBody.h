@@ -560,6 +560,8 @@ void addJointTorque(int i, btScalar Q);
 	}
 	void	forwardKinematics(btAlignedObjectArray<btQuaternion>& scratch_q,btAlignedObjectArray<btVector3>& scratch_m);
 
+	void compTreeLinkVelocities(btVector3 *omega, btVector3 *vel) const;
+
 	void	updateCollisionObjectWorldTransforms(btAlignedObjectArray<btQuaternion>& scratch_q,btAlignedObjectArray<btVector3>& scratch_m);
 	
 	virtual	int	calculateSerializeBufferSize()	const;
@@ -613,9 +615,8 @@ private:
     btMultiBody(const btMultiBody &);  // not implemented
     void operator=(const btMultiBody &);  // not implemented
 
-    void compTreeLinkVelocities(btVector3 *omega, btVector3 *vel) const;
 
-	void solveImatrix(const btVector3& rhs_top, const btVector3& rhs_bot, float result[6]) const;
+	void solveImatrix(const btVector3& rhs_top, const btVector3& rhs_bot, btScalar result[6]) const;
 	void solveImatrix(const btSpatialForceVector &rhs, btSpatialMotionVector &result) const;
 	
 	void updateLinksDofOffsets()

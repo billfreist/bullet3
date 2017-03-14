@@ -106,10 +106,10 @@ struct RobotSimThreadLocalStorage
 void	RobotThreadFunc(void* userPtr,void* lsMemory)
 {
 	printf("RobotThreadFunc thread started\n");
-	RobotSimThreadLocalStorage* localStorage = (RobotSimThreadLocalStorage*) lsMemory;
+//	RobotSimThreadLocalStorage* localStorage = (RobotSimThreadLocalStorage*) lsMemory;
 
 	RobotSimArgs* args = (RobotSimArgs*) userPtr;
-	int workLeft = true;
+//	int workLeft = true;
 	b3Clock clock;
 	clock.reset();
 	bool init = true;
@@ -157,7 +157,7 @@ void*	RobotlsMemoryFunc()
 
 ATTRIBUTE_ALIGNED16(class) MultiThreadedOpenGLGuiHelper2 : public GUIHelperInterface
 {
-	CommonGraphicsApp* m_app;
+//	CommonGraphicsApp* m_app;
 	
 	b3CriticalSection* m_cs;
 
@@ -188,9 +188,8 @@ public:
 	int m_instanceId;
 	
 
-	MultiThreadedOpenGLGuiHelper2(CommonGraphicsApp* app, GUIHelperInterface* guiHelper)
-		:m_app(app)
-		,m_cs(0),
+	MultiThreadedOpenGLGuiHelper2( GUIHelperInterface* guiHelper)
+		:	m_cs(0),
 		m_texels(0),
 		m_textureId(-1)
 	{
@@ -439,11 +438,13 @@ struct b3RobotSimAPI_InternalData
 	bool m_connected;
 
 	b3RobotSimAPI_InternalData()
-		:m_threadSupport(0),
-		m_multiThreadedHelper(0),
-		m_clientServerDirect(0),
-		m_physicsClient(0),
-		m_useMultiThreading(false),
+		:
+	m_physicsClient(0),
+	m_threadSupport(0),
+	m_multiThreadedHelper(0),
+	
+	m_clientServerDirect(0),
+	m_useMultiThreading(false),
 		m_connected(false)
 	{
 	}
@@ -473,6 +474,16 @@ void b3RobotSimAPI::setGravity(const b3Vector3& gravityAcceleration)
     b3SharedMemoryStatusHandle statusHandle;
 	b3PhysicsParamSetGravity(command,  gravityAcceleration[0],gravityAcceleration[1],gravityAcceleration[2]);
 	statusHandle = b3SubmitClientCommandAndWaitStatus(m_data->m_physicsClient, command);
+    b3Assert(b3GetStatusType(statusHandle)==CMD_CLIENT_COMMAND_COMPLETED);
+
+}
+
+void b3RobotSimAPI::setNumSolverIterations(int numIterations)
+{
+    b3SharedMemoryCommandHandle command = b3InitPhysicsParamCommand(m_data->m_physicsClient);
+    b3SharedMemoryStatusHandle statusHandle;
+    b3PhysicsParamSetNumSolverIterations(command, numIterations);
+    statusHandle = b3SubmitClientCommandAndWaitStatus(m_data->m_physicsClient, command);
     b3Assert(b3GetStatusType(statusHandle)==CMD_CLIENT_COMMAND_COMPLETED);
 
 }
@@ -515,7 +526,11 @@ bool b3RobotSimAPI::calculateInverseKinematics(const struct b3RobotSimInverseKin
 	{
 		b3CalculateInverseKinematicsAddTargetPurePosition(command,args.m_endEffectorLinkIndex,args.m_endEffectorTargetPosition);
 	}
-	
+    
+    if (args.m_flags & B3_HAS_JOINT_DAMPING)
+    {
+        b3CalculateInverseKinematicsSetJointDamping(command, args.m_numDegreeOfFreedom, &args.m_jointDamping[0]);
+    }
 
     b3SharedMemoryStatusHandle statusHandle;
 	statusHandle = b3SubmitClientCommandAndWaitStatus(m_data->m_physicsClient, command);
@@ -615,7 +630,8 @@ void b3RobotSimAPI::processMultiThreadedGraphicsRequests()
 	case eRobotSimGUIHelperRemoveAllGraphicsInstances:
         {
             m_data->m_multiThreadedHelper->m_childGuiHelper->removeAllGraphicsInstances();
-			int numRenderInstances = m_data->m_multiThreadedHelper->m_childGuiHelper->getRenderInterface()->getTotalNumInstances();
+			int numRenderInstances;
+			numRenderInstances = m_data->m_multiThreadedHelper->m_childGuiHelper->getRenderInterface()->getTotalNumInstances();
 			b3Assert(numRenderInstances==0);
 
             m_data->m_multiThreadedHelper->getCriticalSection()->lock();
@@ -695,7 +711,7 @@ bool b3RobotSimAPI::getJointStates(int bodyUniqueId, b3JointStates& state)
     
     if (statusHandle)
     {
-        double rootInertialFrame[7];
+     //   double rootInertialFrame[7];
         const double* rootLocalInertialFrame;
         const double* actualStateQ;
         const double* actualStateQdot;
@@ -843,7 +859,8 @@ bool b3RobotSimAPI::loadFile(const struct b3RobotSimLoadFileArgs& args, b3RobotS
 				if (numBodies)
 				{
 					results.m_uniqueObjectIds.resize(numBodies);
-					int numBodies = b3GetStatusBodyIndices(statusHandle, &results.m_uniqueObjectIds[0],results.m_uniqueObjectIds.size());
+					int numBodies;
+					numBodies = b3GetStatusBodyIndices(statusHandle, &results.m_uniqueObjectIds[0],results.m_uniqueObjectIds.size());
 
 				}
 				statusOk = true;
@@ -865,11 +882,7 @@ bool b3RobotSimAPI::connect(GUIHelperInterface* guiHelper)
 {
 	if (m_data->m_useMultiThreading)
 	{
-		m_data->m_multiThreadedHelper = new MultiThreadedOpenGLGuiHelper2(guiHelper->getAppInterface(), guiHelper);
-
-		MultiThreadedOpenGLGuiHelper2* guiHelperWrapper = new MultiThreadedOpenGLGuiHelper2(guiHelper->getAppInterface(), guiHelper);
-
-
+		m_data->m_multiThreadedHelper = new MultiThreadedOpenGLGuiHelper2(guiHelper);
 
 
 		m_data->m_threadSupport = createRobotSimThreadSupport(MAX_ROBOT_NUM_THREADS);
@@ -892,7 +905,7 @@ bool b3RobotSimAPI::connect(GUIHelperInterface* guiHelper)
 			int numMoving = 0;
 			m_data->m_args[w].m_positions.resize(numMoving);
 			m_data->m_args[w].m_physicsServerPtr = &m_data->m_physicsServer;
-			int index = 0;
+			//int index = 0;
 
 			m_data->m_threadSupport->runTask(B3_THREAD_SCHEDULE_TASK, (void*)&m_data->m_args[w], w);
 			while (m_data->m_args[w].m_cs->getSharedParam(0) == eRobotSimIsUnInitialized)
@@ -903,7 +916,8 @@ bool b3RobotSimAPI::connect(GUIHelperInterface* guiHelper)
 		m_data->m_args[0].m_cs->setSharedParam(1, eRobotSimGUIHelperIdle);
 		m_data->m_multiThreadedHelper->setCriticalSection(m_data->m_args[0].m_cs);
 
-		bool serverConnected = m_data->m_physicsServer.connectSharedMemory(m_data->m_multiThreadedHelper);
+		bool serverConnected;
+		serverConnected = m_data->m_physicsServer.connectSharedMemory(m_data->m_multiThreadedHelper);
 		b3Assert(serverConnected);
 
 		m_data->m_physicsClient = b3ConnectSharedMemory(SHARED_MEMORY_KEY);
@@ -911,8 +925,9 @@ bool b3RobotSimAPI::connect(GUIHelperInterface* guiHelper)
 	else
 	{
 		PhysicsServerCommandProcessor* sdk = new PhysicsServerCommandProcessor;
-		m_data->m_clientServerDirect = new PhysicsDirect(sdk);
-		bool connected = m_data->m_clientServerDirect->connect(guiHelper);
+		m_data->m_clientServerDirect = new PhysicsDirect(sdk,true);
+		bool connected;
+		connected = m_data->m_clientServerDirect->connect(guiHelper);
 		m_data->m_physicsClient = (b3PhysicsClientHandle)m_data->m_clientServerDirect;
 
 	}

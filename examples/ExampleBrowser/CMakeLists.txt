@@ -34,6 +34,8 @@ ADD_LIBRARY(BulletExampleBrowserLib
 	CollisionShape2TriangleMesh.h
 	../Utils/b3Clock.cpp
 	../Utils/b3Clock.h
+	../Utils/ChromeTraceUtil.cpp
+	../Utils/ChromeTraceUtil.h
 	../Utils/b3ResourcePath.cpp
 	../Utils/b3ResourcePath.h
 	../Utils/b3ERPCFMHelper.hpp
@@ -315,6 +317,8 @@ SET(BulletExampleBrowser_SRCS
   ../Importers/ImportURDFDemo/MyMultiBodyCreator.cpp
   ../Importers/ImportURDFDemo/MyMultiBodyCreator.h
   ../Importers/ImportURDFDemo/UrdfParser.cpp
+  ../Utils/RobotLoggingUtil.cpp
+  ../Utils/RobotLoggingUtil.h
   ../Importers/ImportURDFDemo/urdfStringSplit.cpp
  ../Importers/ImportURDFDemo/urdfStringSplit.h
   ../Importers/ImportURDFDemo/BulletUrdfImporter.cpp

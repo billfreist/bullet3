@@ -5,7 +5,7 @@ set(CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS true)
 SET(MSVC_INCREMENTAL_DEFAULT ON)
 
 PROJECT(BULLET_PHYSICS)
-SET(BULLET_VERSION 2.85)
+FILE (STRINGS "VERSION" BULLET_VERSION)
 
 IF(COMMAND cmake_policy)
    cmake_policy(SET CMP0003 NEW)
@@ -210,7 +210,10 @@ ENDIF()
 OPTION(BUILD_BULLET3 "Set when you want to build Bullet 3" ON)
 
 OPTION(BUILD_PYBULLET "Set when you want to build pybullet (experimental Python bindings for Bullet)" OFF)
-
+	
+OPTION(BUILD_ENET "Set when you want to build apps with enet UDP networking support" ON)
+OPTION(BUILD_CLSOCKET "Set when you want to build apps with enet TCP networking support" ON)
+	
 
 IF(BUILD_PYBULLET)
 
@@ -218,6 +221,7 @@ IF(BUILD_PYBULLET)
 
 	OPTION(BUILD_PYBULLET_NUMPY "Set when you want to build pybullet with NumPy support" OFF)
 	OPTION(BUILD_PYBULLET_ENET "Set when you want to build pybullet with enet UDP networking support" ON)
+	OPTION(BUILD_PYBULLET_CLSOCKET "Set when you want to build pybullet with enet TCP networking support" ON)
 	
 	IF(BUILD_PYBULLET_NUMPY)	
 		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_LIST_DIR}/build3/cmake)

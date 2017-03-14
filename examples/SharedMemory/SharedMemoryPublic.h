@@ -2,6 +2,9 @@
 #define SHARED_MEMORY_PUBLIC_H
 
 #define SHARED_MEMORY_KEY 12347
+///increase the SHARED_MEMORY_MAGIC_NUMBER whenever incompatible changes are made in the structures
+///my convention is year/month/day/rev
+#define SHARED_MEMORY_MAGIC_NUMBER 201703010
 
 enum EnumSharedMemoryClientCommand
 {
@@ -46,6 +49,11 @@ enum EnumSharedMemoryClientCommand
     CMD_SET_SHADOW,
 	CMD_USER_DEBUG_DRAW,
 	CMD_REQUEST_VR_EVENTS_DATA,
+	CMD_SET_VR_CAMERA_STATE,
+	CMD_SYNC_BODY_INFO,
+	CMD_STATE_LOGGING,
+    CMD_CONFIGURE_OPENGL_VISUALIZER,
+	CMD_REQUEST_KEYBOARD_EVENTS_DATA,
     //don't go beyond this command!
     CMD_MAX_CLIENT_COMMANDS,
     
@@ -107,11 +115,24 @@ enum EnumSharedMemoryServerStatus
         CMD_LOAD_TEXTURE_COMPLETED,
         CMD_LOAD_TEXTURE_FAILED,
 		CMD_USER_DEBUG_DRAW_COMPLETED,
+		CMD_USER_DEBUG_DRAW_PARAMETER_COMPLETED,
 		CMD_USER_DEBUG_DRAW_FAILED,
 		CMD_USER_CONSTRAINT_COMPLETED,
+		CMD_USER_CONSTRAINT_INFO_COMPLETED,
+        CMD_REMOVE_USER_CONSTRAINT_COMPLETED,
+        CMD_CHANGE_USER_CONSTRAINT_COMPLETED,
+		CMD_REMOVE_USER_CONSTRAINT_FAILED,
+        CMD_CHANGE_USER_CONSTRAINT_FAILED,
 		CMD_USER_CONSTRAINT_FAILED,
 		CMD_REQUEST_VR_EVENTS_DATA_COMPLETED,
 		CMD_REQUEST_RAY_CAST_INTERSECTIONS_COMPLETED,
+		CMD_SYNC_BODY_INFO_COMPLETED,
+		CMD_SYNC_BODY_INFO_FAILED,
+		CMD_STATE_LOGGING_COMPLETED,
+		CMD_STATE_LOGGING_START_COMPLETED,
+		CMD_STATE_LOGGING_FAILED,
+		CMD_REQUEST_KEYBOARD_EVENTS_DATA_COMPLETED,
+		CMD_REQUEST_KEYBOARD_EVENTS_DATA_FAILED,
         //don't go beyond 'CMD_MAX_SERVER_COMMANDS!
         CMD_MAX_SERVER_COMMANDS
 };
@@ -159,11 +180,30 @@ struct b3JointInfo
     double m_jointAxis[3]; // joint axis in parent local frame
 };
 
+struct b3UserConstraint
+{
+    int m_parentBodyIndex;
+    int m_parentJointIndex;
+    int m_childBodyIndex;
+    int m_childJointIndex;
+    double m_parentFrame[7];
+    double m_childFrame[7];
+    double m_jointAxis[3];
+    int m_jointType;
+    double m_maxAppliedForce;
+    int m_userConstraintUniqueId;
+};
+
 struct b3BodyInfo
 {
 	const char* m_baseName;
 };
 
+
+// copied from btMultiBodyLink.h
+enum SensorType {
+	eSensorForceTorqueType = 1,
+};
 
 
 struct b3JointSensorState
@@ -213,6 +253,7 @@ enum b3VREventType
 #define MAX_VR_BUTTONS 64
 #define MAX_VR_CONTROLLERS 8
 #define MAX_RAY_HITS 128
+#define MAX_KEYBOARD_EVENTS 256
 
 enum b3VRButtonInfo
 {
@@ -241,6 +282,18 @@ struct b3VREventsData
 	struct b3VRControllerEvent* m_controllerEvents;
 };
 
+
+struct b3KeyboardEvent
+{
+	int m_keyCode;//ascii
+	int m_keyState;// see b3VRButtonInfo
+};
+
+struct b3KeyboardEventsData
+{
+	int m_numKeyboardEvents;
+	struct b3KeyboardEvent* m_keyboardEvents;
+};
 
 struct b3ContactPointData
 {
@@ -272,6 +325,13 @@ enum
 	CONTACT_QUERY_MODE_COMPUTE_CLOSEST_POINTS = 1,
 };
 
+enum  b3StateLoggingType
+{
+	STATE_LOGGING_MINITAUR = 0,
+	STATE_LOGGING_GENERIC_ROBOT = 1,
+	STATE_LOGGING_VR_CONTROLLERS = 2,
+	STATE_LOGGING_COMMANDS = 3,
+};
 
 
 struct b3ContactInformation
@@ -305,7 +365,7 @@ struct b3VisualShapeData
 	int m_visualGeometryType;//box primitive, sphere primitive, triangle mesh
 	double m_dimensions[3];//meaning depends on m_visualGeometryType
 	char m_meshAssetFileName[VISUAL_SHAPE_MAX_PATH_LEN];
-	double m_localInertiaFrame[7];//pos[3], orn[4]
+    double m_localVisualFrame[7];//pos[3], orn[4]
 	//todo: add more data if necessary (material color etc, although material can be in asset file .obj file)
     double m_rgbaColor[4];
 };
@@ -323,11 +383,16 @@ struct b3VisualShapeInformation
 ///use URDF link frame = link COM frame * inertiaFrame.inverse()
 struct b3LinkState
 {
+	//m_worldPosition and m_worldOrientation of the Center Of Mass (COM)
     double m_worldPosition[3];
     double m_worldOrientation[4];
 
     double m_localInertialPosition[3];
     double m_localInertialOrientation[4];
+
+	///world position and orientation of the (URDF) link frame
+	double m_worldLinkFramePosition[3];
+    double m_worldLinkFrameOrientation[4];
 };
 
 //todo: discuss and decide about control mode and combinations
@@ -351,6 +416,21 @@ enum EnumRenderer
     ER_TINY_RENDERER=(1<<16),
     ER_BULLET_HARDWARE_OPENGL=(1<<17),
     //ER_FIRE_RAYS=(1<<18),
+};
+
+enum b3ConfigureDebugVisualizerEnum
+{
+    COV_ENABLE_GUI=1,
+    COV_ENABLE_SHADOWS,
+    COV_ENABLE_WIREFRAME,
+};
+
+enum eCONNECT_METHOD {
+  eCONNECT_GUI = 1,
+  eCONNECT_DIRECT = 2,
+  eCONNECT_SHARED_MEMORY = 3,
+  eCONNECT_UDP = 4,
+  eCONNECT_TCP = 5,
 };
 
 #endif//SHARED_MEMORY_PUBLIC_H

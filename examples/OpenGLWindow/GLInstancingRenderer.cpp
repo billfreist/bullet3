@@ -31,13 +31,17 @@ float shadowMapWorldSize=10;
 
 #ifndef __APPLE__
 #ifndef glVertexAttribDivisor
+#ifndef NO_GLEW
 #define glVertexAttribDivisor glVertexAttribDivisorARB
+#endif //NO_GLEW
 #endif //glVertexAttribDivisor
 #ifndef GL_COMPARE_REF_TO_TEXTURE
 #define GL_COMPARE_REF_TO_TEXTURE GL_COMPARE_R_TO_TEXTURE
 #endif //GL_COMPARE_REF_TO_TEXTURE
 #ifndef glDrawElementsInstanced
+#ifndef NO_GLEW
 #define glDrawElementsInstanced glDrawElementsInstancedARB
+#endif //NO_GLEW
 #endif
 #endif //__APPLE__
 #include "GLInstancingRenderer.h"
@@ -163,10 +167,10 @@ struct InternalDataRenderer : public GLInstanceRendererInternalData
 	
 	
 	InternalDataRenderer() :
+	m_activeCamera(&m_defaultCamera1),
 		m_shadowMap(0),
 		m_shadowTexture(0),
-		m_renderFrameBuffer(0),
-		m_activeCamera(&m_defaultCamera1)
+		m_renderFrameBuffer(0)
 	{
 		//clear to zero to make it obvious if the matrix is used uninitialized
 		for (int i=0;i<16;i++)
@@ -616,7 +620,7 @@ int	GLInstancingRenderer::registerTexture(const unsigned char* texels, int width
 	b3Assert(glGetError() ==GL_NO_ERROR);
 	glActiveTexture(GL_TEXTURE0);
 	int textureIndex = m_data->m_textureHandles.size();
-    const GLubyte*	image= (const GLubyte*)texels;	
+  //  const GLubyte*	image= (const GLubyte*)texels;	
 	GLuint textureHandle;
 	glGenTextures(1,(GLuint*)&textureHandle);
 	glBindTexture(GL_TEXTURE_2D,textureHandle);
@@ -661,7 +665,7 @@ void    GLInstancingRenderer::updateTexture(int textureIndex, const unsigned cha
 
         glBindTexture(GL_TEXTURE_2D,h.m_glTexture);
         b3Assert(glGetError() ==GL_NO_ERROR);
-        const GLubyte*	image= (const GLubyte*)texels;	
+      //  const GLubyte*	image= (const GLubyte*)texels;	
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, h.m_width,h.m_height,0,GL_RGB,GL_UNSIGNED_BYTE,&flippedTexels[0]);
         b3Assert(glGetError() ==GL_NO_ERROR);
         glGenerateMipmap(GL_TEXTURE_2D);

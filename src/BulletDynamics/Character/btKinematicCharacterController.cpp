@@ -559,7 +559,7 @@ void btKinematicCharacterController::stepDown ( btCollisionWorld* collisionWorld
 		break;
 	}
 
-	if (m_ghostObject->hasContactResponse() && (callback.hasHit() && needsCollision(m_ghostObject, callback.m_hitCollisionObject)) || runonce == true)
+	if ((m_ghostObject->hasContactResponse() && (callback.hasHit() && needsCollision(m_ghostObject, callback.m_hitCollisionObject))) || runonce == true)
 	{
 		// we dropped a fraction of the height -> hit floor
 		btScalar fraction = (m_currentPosition.getY() - callback.m_hitPointWorld.getY()) / 2;
@@ -657,7 +657,7 @@ void btKinematicCharacterController::setLinearVelocity(const btVector3& velocity
 		if (c != 0)
 		{
 			//there is a component in walkdirection for vertical velocity
-			btVector3 upComponent = m_up * (sinf(SIMD_HALF_PI - acosf(c)) * m_walkDirection.length());
+			btVector3 upComponent = m_up * (btSin(SIMD_HALF_PI - btAcos(c)) * m_walkDirection.length());
 			m_walkDirection -= upComponent;
 			m_verticalVelocity = (c < 0.0f ? -1 : 1) * upComponent.length();
 			
@@ -751,7 +751,7 @@ void btKinematicCharacterController::playerStep (  btCollisionWorld* collisionWo
 	m_wasOnGround = onGround();
 
 	//btVector3 lvel = m_walkDirection;
-	btScalar c = 0.0f;
+	//btScalar c = 0.0f;
 	
 	if (m_walkDirection.length2() > 0)
 	{

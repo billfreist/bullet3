@@ -11,8 +11,8 @@
 #include "MultiBodyCreationInterface.h"
 #include <string>
 
-static int bodyCollisionFilterGroup=btBroadphaseProxy::CharacterFilter;
-static int bodyCollisionFilterMask=btBroadphaseProxy::AllFilter&(~btBroadphaseProxy::CharacterFilter);
+//static int bodyCollisionFilterGroup=btBroadphaseProxy::CharacterFilter;
+//static int bodyCollisionFilterMask=btBroadphaseProxy::AllFilter&(~btBroadphaseProxy::CharacterFilter);
 static bool enableConstraints = true;
 
 static btVector4 colors[4] =
@@ -71,7 +71,7 @@ struct URDF2BulletCachedData
     }
 
 
-    void registerMultiBody( int urdfLinkIndex, class btMultiBody* body, const btTransform& worldTransform, btScalar mass, const btVector3& localInertiaDiagonal, const class btCompoundShape* compound, const btTransform& localInertialFrame)
+    void registerMultiBody( int urdfLinkIndex, class btMultiBody* body, const btTransform& worldTransform, btScalar mass, const btVector3& localInertiaDiagonal, const class btCollisionShape* compound, const btTransform& localInertialFrame)
     {
         m_urdfLinkLocalInertialFrames[urdfLinkIndex] = localInertialFrame;
     }
@@ -81,7 +81,7 @@ struct URDF2BulletCachedData
         return m_urdfLink2rigidBodies[urdfLinkIndex];
     }
 
-    void registerRigidBody( int urdfLinkIndex, class btRigidBody* body, const btTransform& worldTransform, btScalar mass, const btVector3& localInertiaDiagonal, const class btCompoundShape* compound, const btTransform& localInertialFrame)
+    void registerRigidBody( int urdfLinkIndex, class btRigidBody* body, const btTransform& worldTransform, btScalar mass, const btVector3& localInertiaDiagonal, const class btCollisionShape* compound, const btTransform& localInertialFrame)
     {
         btAssert(m_urdfLink2rigidBodies[urdfLinkIndex]==0);
 
@@ -231,6 +231,8 @@ void ConvertURDF2BulletInternal(
 
 
     bool hasParentJoint = u2b.getJointInfo(urdfLinkIndex, parent2joint, linkTransformInWorldSpace, jointAxisInJointSpace, jointType,jointLowerLimit,jointUpperLimit, jointDamping, jointFriction);
+	std::string linkName = u2b.getLinkName(urdfLinkIndex);
+                          
     if (flags & CUF_USE_SDF)
     {
         parent2joint =parentTransformInWorldSpace.inverse()*linkTransformInWorldSpace;
@@ -248,7 +250,12 @@ void ConvertURDF2BulletInternal(
     
     
 
-    btCompoundShape* compoundShape = u2b.convertLinkCollisionShapes(urdfLinkIndex,pathPrefix,localInertialFrame);
+    btCompoundShape* tmpShape = u2b.convertLinkCollisionShapes(urdfLinkIndex,pathPrefix,localInertialFrame);
+	btCollisionShape* compoundShape = tmpShape;
+	if (tmpShape->getNumChildShapes() == 1 && tmpShape->getChildTransform(0)==btTransform::getIdentity())
+	{
+		compoundShape = tmpShape->getChildShape(0);
+	}
 	
 	int graphicsIndex = u2b.convertLinkVisualShapes(urdfLinkIndex,pathPrefix,localInertialFrame);
 	
@@ -314,7 +321,11 @@ void ConvertURDF2BulletInternal(
                 bool isFixedBase = (mass==0);//todo: figure out when base is fixed
                 int totalNumJoints = cache.m_totalNumJoints1;
                 cache.m_bulletMultiBody = creation.allocateMultiBody(urdfLinkIndex, totalNumJoints,mass, localInertiaDiagonal, isFixedBase, canSleep);
-
+				if (flags & CUF_USE_MJCF)
+				{
+					cache.m_bulletMultiBody->setBaseWorldTransform(linkTransformInWorldSpace);
+				}
+				
                 cache.registerMultiBody(urdfLinkIndex, cache.m_bulletMultiBody, inertialFrameInWorldSpace, mass, localInertiaDiagonal, compoundShape, localInertialFrame);
             }
 
@@ -440,9 +451,19 @@ void ConvertURDF2BulletInternal(
 				
 				//base and fixed? -> static, otherwise flag as dynamic
                 bool isDynamic = (mbLinkIndex<0 && cache.m_bulletMultiBody->hasFixedBase())? false : true;
-                short collisionFilterGroup = isDynamic? short(btBroadphaseProxy::DefaultFilter) : short(btBroadphaseProxy::StaticFilter);
-                short collisionFilterMask = isDynamic? 	short(btBroadphaseProxy::AllFilter) : 	short(btBroadphaseProxy::AllFilter ^ btBroadphaseProxy::StaticFilter);
+                int collisionFilterGroup = isDynamic? int(btBroadphaseProxy::DefaultFilter) : int(btBroadphaseProxy::StaticFilter);
+                int collisionFilterMask = isDynamic? 	int(btBroadphaseProxy::AllFilter) : 	int(btBroadphaseProxy::AllFilter ^ btBroadphaseProxy::StaticFilter);
 
+				int colGroup=0, colMask=0;
+				int flags = u2b.getCollisionGroupAndMask(urdfLinkIndex,colGroup, colMask);
+				if (flags & URDF_HAS_COLLISION_GROUP)
+				{
+					collisionFilterGroup = colGroup;
+				}
+				if (flags & URDF_HAS_COLLISION_MASK)
+				{
+					collisionFilterMask = colMask;
+				}
                 world1->addCollisionObject(col,collisionFilterGroup,collisionFilterMask);
 
                 btVector4 color = selectColor2();//(0.0,0.0,0.5);
@@ -505,7 +526,12 @@ void ConvertURDF2Bullet(
 
 		btTransform localInertialFrameRoot = cache.m_urdfLinkLocalInertialFrames[urdfLinkIndex];
 
-		mb->setBaseWorldTransform(rootTransformInWorldSpace*localInertialFrameRoot);
+		if (flags & CUF_USE_MJCF)
+		{
+		} else
+		{
+			mb->setBaseWorldTransform(rootTransformInWorldSpace*localInertialFrameRoot);
+		}
 		btAlignedObjectArray<btQuaternion> scratch_q;
 		btAlignedObjectArray<btVector3> scratch_m;
 		mb->forwardKinematics(scratch_q,scratch_m);

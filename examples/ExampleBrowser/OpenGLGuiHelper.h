@@ -42,6 +42,7 @@ struct OpenGLGuiHelper : public GUIHelperInterface
 
 	virtual void setUpAxis(int axis);
 	
+    
 	virtual void resetCamera(float camDist, float pitch, float yaw, float camPosX,float camPosY, float camPosZ);
 	
 	virtual void copyCameraImageData(const float viewMatrix[16], const float projectionMatrix[16], 
@@ -63,6 +64,11 @@ struct OpenGLGuiHelper : public GUIHelperInterface
 	{
 		return -1;
 	}
+	virtual int		addUserDebugParameter(const char* txt, double	rangeMin, double	rangeMax, double startValue)
+	{
+		return -1;
+	}
+
 	virtual void	removeUserDebugItem( int debugItemUniqueId)
 	{
 	}
@@ -75,6 +81,9 @@ struct OpenGLGuiHelper : public GUIHelperInterface
 
 	void setVRMode(bool vrMode);
 
+	void setVisualizerFlag(int flag, int enable);
+
+	virtual void	setVisualizerFlagCallback(VisualizerFlagCallback callback);
 
 };
 
