@@ -21,6 +21,9 @@ ENDIF()
 
 IF (NOT WIN32)
 	LINK_LIBRARIES(		pthread	)
+	IF (NOT APPLE)
+		LINK_LIBRARIES(${DL})
+	ENDIF()
 ENDIF()
 
 	ADD_EXECUTABLE(Test_PhysicsClientServer
@@ -39,6 +42,7 @@ ENDIF()
                         ../../examples/SharedMemory/PhysicsDirectC_API.h
                         ../../examples/SharedMemory/PhysicsServerCommandProcessor.cpp
                         ../../examples/SharedMemory/PhysicsServerCommandProcessor.h
+                        ../../examples/SharedMemory/b3PluginManager.cpp
                         ../../examples/SharedMemory/PhysicsClientSharedMemory.cpp
                         ../../examples/SharedMemory/PhysicsClientSharedMemory.h
 						../../examples/SharedMemory/PhysicsClientSharedMemory_C_API.cpp
@@ -58,6 +62,8 @@ ENDIF()
                         ../../examples/Utils/b3ResourcePath.h
                         ../../examples/Utils/b3Clock.cpp
                         ../../examples/Utils/b3Clock.h
+												../../examples/Utils/ChromeTraceUtil.cpp
+												../../examples/Utils/ChromeTraceUtil.h
 						../../examples/Utils/RobotLoggingUtil.cpp
                         ../../examples/Utils/RobotLoggingUtil.h
 					    ../../examples/SharedMemory/TinyRendererVisualShapeConverter.cpp

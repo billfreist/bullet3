@@ -13,7 +13,8 @@ protected:
 	virtual void setSharedMemoryInterface(class SharedMemoryInterface* sharedMem);
     void processBodyJointInfo(int bodyUniqueId, const struct SharedMemoryStatus& serverCmd);
     void resetData();
-
+	void removeCachedBody(int bodyUniqueId);
+	virtual void renderSceneInternal() {};
 public:
     PhysicsClientSharedMemory();
     virtual ~PhysicsClientSharedMemory();
@@ -47,6 +48,8 @@ public:
     virtual int getNumUserConstraints() const;
     
     virtual int getUserConstraintInfo(int constraintUniqueId, struct b3UserConstraint& info) const;
+	
+	virtual int getUserConstraintId(int serialIndex) const;
     
     virtual void setSharedMemoryKey(int key);
 
@@ -69,7 +72,11 @@ public:
 
 	virtual void getCachedKeyboardEvents(struct b3KeyboardEventsData* keyboardEventsData);
 
+	virtual void getCachedMouseEvents(struct b3MouseEventsData* mouseEventsData);
+
 	virtual void getCachedRaycastHits(struct b3RaycastInformation* raycastHits);
+
+	virtual void getCachedMassMatrix(int dofCountCheck, double* massMatrix);
 
 	virtual void setTimeOut(double timeOutInSeconds);
 	virtual double getTimeOut() const;

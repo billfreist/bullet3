@@ -49,7 +49,7 @@
 #include <stdarg.h>
 #include <errno.h>
 
-#if defined(_LINUX) || defined (_DARWIN)
+#if defined(_LINUX) || defined (_DARWIN) || defined(_BSD)
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -66,7 +66,7 @@
 #ifdef _DARWIN
 #include <net/if.h>
 #endif
-#if defined(_LINUX) || defined (_DARWIN)
+#if defined(_LINUX) || defined (_DARWIN) || defined(_BSD)
 #include <sys/time.h>
 #include <sys/uio.h>
 #include <unistd.h>
@@ -76,7 +76,7 @@
 #ifdef _WIN32
 #include <io.h>
 #include <winsock2.h>
-#include <Ws2tcpip.h>
+#include <ws2tcpip.h>
 
 #define IPTOS_LOWDELAY  0x10
 

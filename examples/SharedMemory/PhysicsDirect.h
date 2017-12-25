@@ -29,6 +29,9 @@ protected:
 	void postProcessStatus(const struct SharedMemoryStatus& serverCmd);
 
 	void resetData();
+
+	void removeCachedBody(int bodyUniqueId);
+
 public:
 
 	PhysicsDirect(class PhysicsCommandProcessorInterface* physSdk, bool passSdkOwnership);
@@ -66,6 +69,8 @@ public:
     virtual int getNumUserConstraints() const;
     
     virtual int getUserConstraintInfo(int constraintUniqueId, struct b3UserConstraint& info) const;
+	
+	virtual int getUserConstraintId(int serialIndex) const;
     
 	///todo: move this out of the
     virtual void setSharedMemoryKey(int key);
@@ -90,7 +95,11 @@ public:
 
 	virtual void getCachedKeyboardEvents(struct b3KeyboardEventsData* keyboardEventsData);
 
+	virtual void getCachedMouseEvents(struct b3MouseEventsData* mouseEventsData);
+
 	virtual void getCachedRaycastHits(struct b3RaycastInformation* raycastHits);
+
+	virtual void getCachedMassMatrix(int dofCountCheck, double* massMatrix);
 
 	//the following APIs are for internal use for visualization:
 	virtual bool connect(struct GUIHelperInterface* guiHelper);

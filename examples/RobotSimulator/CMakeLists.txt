@@ -32,6 +32,7 @@ SET(RobotSimulator_SRCS
 		../../examples/SharedMemory/PhysicsServer.cpp
 		../../examples/SharedMemory/PhysicsServer.h
 		../../examples/SharedMemory/PhysicsServerExample.cpp
+		../../examples/SharedMemory/PhysicsServerExampleBullet2.cpp
 		../../examples/SharedMemory/SharedMemoryInProcessPhysicsC_API.cpp
 		../../examples/SharedMemory/PhysicsServerSharedMemory.cpp
 		../../examples/SharedMemory/PhysicsServerSharedMemory.h
@@ -41,6 +42,8 @@ SET(RobotSimulator_SRCS
 		../../examples/SharedMemory/PhysicsDirectC_API.h
 		../../examples/SharedMemory/PhysicsServerCommandProcessor.cpp
 		../../examples/SharedMemory/PhysicsServerCommandProcessor.h
+		../../examples/SharedMemory/b3PluginManager.cpp
+		
 		../../examples/SharedMemory/PhysicsClientSharedMemory.cpp
 		../../examples/SharedMemory/PhysicsClientSharedMemory.h
 		../../examples/SharedMemory/PhysicsClientSharedMemory_C_API.cpp
@@ -99,11 +102,7 @@ ELSE(WIN32)
 	ENDIF(BUILD_ENET)
 
 	IF(BUILD_CLSOCKET)	
-		IF(APPLE)
-			ADD_DEFINITIONS(-D_DARWIN)
-		ELSE()
-			ADD_DEFINITIONS(-D_LINUX)
-		ENDIF()
+		ADD_DEFINITIONS(${OSDEF})
 	ENDIF(BUILD_CLSOCKET)
 ENDIF(WIN32)
 
@@ -138,8 +137,34 @@ IF(BUILD_CLSOCKET)
 	)
 ENDIF()
 
-ADD_EXECUTABLE(App_RobotSimulator  ${RobotSimulator_SRCS})
 
+#some code to support OpenGL and Glew cross platform
+IF (WIN32)
+	INCLUDE_DIRECTORIES(
+			${BULLET_PHYSICS_SOURCE_DIR}/btgui/OpenGLWindow/GlewWindows
+	)
+	ADD_DEFINITIONS(-DGLEW_STATIC)
+	LINK_LIBRARIES( ${OPENGL_gl_LIBRARY} ${OPENGL_glu_LIBRARY} )
+ELSE(WIN32)
+	IF(APPLE)
+		find_library(COCOA NAMES Cocoa)
+		MESSAGE(${COCOA})
+		link_libraries(${COCOA} ${OPENGL_gl_LIBRARY} ${OPENGL_glu_LIBRARY})
+
+	ELSE(APPLE)
+		INCLUDE_DIRECTORIES(
+				${BULLET_PHYSICS_SOURCE_DIR}/btgui/OpenGLWindow/GlewWindows
+		)
+		ADD_DEFINITIONS("-DGLEW_INIT_OPENGL11_FUNCTIONS=1")
+		ADD_DEFINITIONS("-DGLEW_STATIC")
+		ADD_DEFINITIONS("-DGLEW_DYNAMIC_LOAD_ALL_GLX_FUNCTIONS=1")
+
+		LINK_LIBRARIES(  pthread ${DL} )
+	ENDIF(APPLE)
+ENDIF(WIN32)
+
+
+ADD_EXECUTABLE(App_RobotSimulator  ${RobotSimulator_SRCS})
 
 SET_TARGET_PROPERTIES(App_RobotSimulator PROPERTIES VERSION ${BULLET_VERSION})
 SET_TARGET_PROPERTIES(App_RobotSimulator PROPERTIES DEBUG_POSTFIX "_d")
@@ -150,7 +175,6 @@ IF(WIN32)
 		TARGET_LINK_LIBRARIES(App_RobotSimulator ws2_32 )
 	ENDIF(BUILD_ENET OR BUILD_CLSOCKET)
 ENDIF(WIN32)
-
 
 
 

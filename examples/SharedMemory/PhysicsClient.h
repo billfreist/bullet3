@@ -37,6 +37,8 @@ public:
     virtual int getNumUserConstraints() const = 0;
     
     virtual int getUserConstraintInfo(int constraintUniqueId, struct b3UserConstraint& info) const = 0;
+	
+	virtual int getUserConstraintId(int serialIndex) const = 0;
     
     virtual void setSharedMemoryKey(int key) = 0;
 
@@ -60,7 +62,11 @@ public:
 
 	virtual void getCachedKeyboardEvents(struct b3KeyboardEventsData* keyboardEventsData) = 0;
 
+	virtual void getCachedMouseEvents(struct b3MouseEventsData* mouseEventsData) = 0;
+
 	virtual void getCachedRaycastHits(struct b3RaycastInformation* raycastHits) = 0;
+
+	virtual void getCachedMassMatrix(int dofCountCheck, double* massMatrix) = 0;
 
 	virtual void setTimeOut(double timeOutInSeconds) = 0;
 	virtual double getTimeOut() const  = 0;
